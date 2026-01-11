@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAFSU GALLERY - Neural Surface</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: radial-gradient(circle at center, #001d3d 0%, #000814 100%); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+        #container { width: 100vw; height: 100vh; }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.9);
+            pointer-events: none;
+            z-index: 10;
+            letter-spacing: 1px;
+        }
+        
+        /* Back Button */
+        #back-button {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            padding: 10px 20px;
+            background: rgba(144, 224, 239, 0.2);
+            border: 1px solid rgba(144, 224, 239, 0.4);
+            border-radius: 8px;
+            color: #caf0f8;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        #back-button:hover {
+            background: rgba(144, 224, 239, 0.3);
+            border-color: rgba(144, 224, 239, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(144, 224, 239, 0.3);
+        }
+        
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            /* 整体UI优化 */
+            #ui-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                padding: 15px;
+                background: rgba(0, 17, 25, 0.95);
+                backdrop-filter: blur(15px);
+                border-radius: 0 0 10px 10px;
+                max-height: 70vh;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 4px 20px rgba(0, 119, 182, 0.3);
+            }
+            
+            /* 标题和状态样式 */
+            .title {
+                font-size: 16px;
+                margin-bottom: 8px;
+            }
+            
+            .status {
+                font-size: 10px;
+                margin-bottom: 6px;
+            }
+            
+            /* 控制信息区域 */
+            .controls-info {
+                margin-top: 10px;
+                padding: 10px;
+                background: rgba(0, 119, 182, 0.2);
+                border: 1px solid rgba(144, 224, 239, 0.3);
+                border-radius: 6px;
+                width: auto;
+            }
+            
+            /* 控制项优化 */
+            .control-item {
+                font-size: 9px;
+                margin-bottom: 4px;
+                line-height: 1.3;
+                display: block;
+            }
+            
+            /* 视频容器调整 */
+            #video-container {
+                position: fixed;
+                bottom: 10px;
+                right: 10px;
+                width: 100px;
+                height: 75px;
+                z-index: 50;
+            }
+            
+            /* 模式指示器调整 */
+            #mode-indicator {
+                position: fixed;
+                bottom: 10px;
+                left: 10px;
+                padding: 6px 12px;
+                font-size: 9px;
+                z-index: 50;
+            }
+            
+            /* 返回按钮调整 */
+            #back-button {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                font-size: 10px;
+                z-index: 2000;
+            }
+            
+            /* 语言切换按钮移动端调整 */
+            #language-switcher {
+                top: 10px;
+                left: 10px;
+                padding: 4px;
+                font-size: 10px;
+            }
+        }
+        
+        /* Language Switcher Styles */
+        #language-switcher {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 17, 25, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(144, 224, 239, 0.4);
+            border-radius: 20px;
+            padding: 6px;
+            z-index: 100;
+            pointer-events: auto;
+        }
+        
+        /* UI Overlay Language Switcher */
+        .language-switcher-ui {
+            display: inline-flex;
+            gap: 6px;
+            background: rgba(0, 17, 25, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(144, 224, 239, 0.4);
+            border-radius: 20px;
+            padding: 3px;
+            pointer-events: auto;
+        }
+        
+        /* Ensure UI overlay allows pointer events for language switcher */
+        #ui-overlay {
+            pointer-events: none;
+        }
+        
+        /* Allow pointer events for language switcher elements */
+        #ui-overlay .language-switcher-ui,
+        #ui-overlay .language-switcher-ui button,
+        #ui-overlay .toggle-controls {
+            pointer-events: auto;
+        }
+        
+        .lang-btn {
+            padding: 5px 14px;
+            border: none;
+            border-radius: 14px;
+            background: transparent;
+            color: rgba(202, 240, 248, 0.7);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .lang-btn.active {
+            background: rgba(144, 224, 239, 0.9);
+            color: #000814;
+            box-shadow: 0 2px 8px rgba(144, 224, 239, 0.4);
+        }
+        
+        .lang-btn:hover {
+            color: #caf0f8;
+            background: rgba(144, 224, 239, 0.3);
+        }
+        
+        .lang-btn.active:hover {
+            background: rgba(144, 224, 239, 1);
+        }
+        
+        /* 多语言文本容器 */
+        [data-lang] {
+            display: block;
+        }
+        
+        /* 隐藏类 */
+        [data-lang].hidden {
+            display: none;
+        }
+        
+        /* 特殊元素的多语言处理 */
+        [data-lang="zh"],
+        [data-lang="en"] {
+            display: inline;
+        }
+        
+        [data-lang="zh"].hidden,
+        [data-lang="en"].hidden {
+            display: none;
+        }
+        .title { font-size: 20px; font-weight: 300; margin-bottom: 10px; color: #caf0f8; text-transform: uppercase; }
+        .status { font-size: 12px; margin-bottom: 8px; opacity: 0.6; display: flex; align-items: center; }
+        .status::before { content: ""; display: inline-block; width: 6px; height: 6px; background: #00b4d8; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 8px #00b4d8; }
+        .hint { font-size: 11px; color: #90e0ef; opacity: 0.5; margin-top: 4px; }
+        
+        /* 折叠按键样式 */
+        .toggle-controls {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(0, 119, 182, 0.2);
+            border: 1px solid rgba(144, 224, 239, 0.3);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #caf0f8;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+        
+        .toggle-controls:hover {
+            background: rgba(0, 119, 182, 0.3);
+            border-color: rgba(144, 224, 239, 0.5);
+        }
+        
+        .toggle-icon {
+            margin-left: 8px;
+            transition: transform 0.3s ease;
+        }
+        
+        /* 展开状态 */
+        .toggle-controls.expanded .toggle-icon {
+            transform: rotate(180deg);
+        }
+        
+        .toggle-controls.expanded span:first-child {
+            content: "隐藏控制说明";
+        }
+        
+        /* 控制信息样式 - 折叠状态 */
+        .controls-info {
+            margin-top: 0;
+            padding: 0;
+            background: rgba(0, 119, 182, 0.1);
+            border-left: 2px solid #00b4d8;
+            pointer-events: auto;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease, opacity 0.3s ease;
+        }
+        
+        /* 展开状态 */
+        .controls-info.expanded {
+            max-height: 300px;
+            padding: 15px;
+            margin-top: 10px;
+            opacity: 1;
+        }
+        .control-item {
+            font-size: 11px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            color: #90e0ef;
+        }
+        .control-item b { color: #fff; margin-right: 5px; font-weight: 500; }
+
+        #video-container {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 180px;
+            height: 135px;
+            border: 1px solid rgba(144, 224, 239, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            transform: scaleX(-1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        video { width: 100%; height: 100%; object-fit: cover; opacity: 0.7; }
+        canvas#output_canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+
+        #mode-indicator {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            padding: 10px 20px;
+            background: rgba(0, 119, 182, 0.1);
+            border: 1px solid rgba(144, 224, 239, 0.3);
+            border-radius: 4px;
+            color: #caf0f8;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        #loader {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: #000814; display:flex; flex-direction:column;
+            justify-content:center; align-items:center; color:white; z-index:100;
+            transition: opacity 1s ease;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: #90e0ef; border-radius: 50%; animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 移动端 UI 微调 - 已合并到上方完整媒体查询 */
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <div class="spinner"></div>
+    <h3 style="font-weight: 300; letter-spacing: 2px;">
+        <span data-lang="en">Constructing Neural Surface...</span>
+        <span data-lang="zh" class="hidden">构筑星球表面神经元...</span>
+    </h3>
+</div>
+
+<div id="ui-overlay">
+    <div class="flex justify-between items-start">
+        <div>
+            <div class="title">
+                <span data-lang="en">GAFSU GALLERY</span>
+                <span data-lang="zh" class="hidden">GAFSU 星元画廊</span>
+            </div>
+            <div class="status" id="cam-status">
+                <span data-lang="en">Waiting for sensor...</span>
+                <span data-lang="zh" class="hidden">等待感应源...</span>
+            </div>
+        </div>
+        <!-- Language Switcher in UI Overlay -->
+        <div class="language-switcher-ui inline-flex">
+            <button class="lang-btn" data-target-lang="zh">中文</button>
+            <button class="lang-btn active" data-target-lang="en">English</button>
+        </div>
+    </div>
+    
+    
+    <!-- 手部动作说明折叠按键 -->
+    <div class="toggle-controls" id="toggle-controls">
+        <span data-lang="en">Show Controls</span>
+        <span data-lang="zh" class="hidden">显示控制说明</span>
+        <span class="toggle-icon">▼</span>
+    </div>
+    
+    <div class="controls-info" id="controls-info">
+        <div class="control-item">
+            <b data-lang="en">Move Palm:</b> <b data-lang="zh" class="hidden">移动手掌：</b>
+            <span data-lang="en"> Rotate planet view</span>
+            <span data-lang="zh" class="hidden"> 旋转星球视角</span>
+        </div>
+        <div class="control-item">
+            <b data-lang="en">Rotate Hand:</b> <b data-lang="zh" class="hidden">旋转手部：</b>
+            <span data-lang="en"> Change planet axis</span>
+            <span data-lang="zh" class="hidden"> 改变星球自转轴心</span>
+        </div>
+        <div class="control-item">
+            <b data-lang="en">Open Palm:</b> <b data-lang="zh" class="hidden">张开手掌：</b>
+            <span data-lang="en"> Zoom in</span>
+            <span data-lang="zh" class="hidden"> 拉近镜头</span>
+        </div>
+        <div class="control-item">
+            <b data-lang="en">Fist:</b> <b data-lang="zh" class="hidden">握紧拳头：</b>
+            <span data-lang="en"> Zoom out</span>
+            <span data-lang="zh" class="hidden"> 远离镜头</span>
+        </div>
+        <div class="control-item">
+            <b data-lang="en">Thumb Index Pinch:</b> <b data-lang="zh" class="hidden">拇指食指捏合：</b>
+            <span data-lang="en"> Enter Focus mode</span>
+            <span data-lang="zh" class="hidden"> 进入Focus模式</span>
+        </div>
+        <div class="control-item">
+            <b data-lang="en">Figure 8 Gesture:</b> <b data-lang="zh" class="hidden">8字手势：</b>
+            <span data-lang="en"> Exit Focus mode</span>
+            <span data-lang="zh" class="hidden"> 退出Focus模式</span>
+        </div>
+        <div class="control-item">
+            <b data-lang="en">Focus Mode:</b> <b data-lang="zh" class="hidden">Focus模式：</b>
+            <span data-lang="en"> After zooming in, pinch to lock view</span>
+            <span data-lang="zh" class="hidden"> 将照片放至最大后，拇指食指捏合，固定镜头视角</span>
+        </div>
+    </div>
+</div>
+
+<div id="mode-indicator">
+    <span data-lang="en">VIEW: STAGGERED ORBITAL LAYOUT | RESPONSIVE: ON</span>
+    <span data-lang="zh" class="hidden">视图：交错轨道布局 | 响应式：开启</span>
+</div>
+
+<div id="video-container">
+    <video id="input_video" autoplay playsinline></video>
+    <canvas id="output_canvas"></canvas>
+</div>
+
+<!-- Back Button -->
+<a href="../index.html" id="back-button">
+    <span>←</span>
+    <span data-lang="en">BACK TO HOME</span>
+    <span data-lang="zh" class="hidden">返回首页</span>
+</a>
+
+<div id="container"></div>
+
+<!-- 外部库加载 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<script>
+// 语言切换功能
+function switchLanguage(lang) {
+    // 保存语言偏好到localStorage
+    localStorage.setItem('gafsuLanguage', lang);
+    
+    // 更新语言按钮状态
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-target-lang="${lang}"].lang-btn`).classList.add('active');
+    
+    // 切换所有多语言文本
+    document.querySelectorAll('[data-lang]').forEach(el => {
+        el.classList.add('hidden');
+    });
+    document.querySelectorAll(`[data-lang="${lang}"]`).forEach(el => {
+        el.classList.remove('hidden');
+    });
+    
+    // 更新控制说明按钮文本
+    const toggleControls = document.getElementById('toggle-controls');
+    if (toggleControls) {
+        const buttonText = toggleControls.querySelector('span:first-child');
+        if (buttonText) {
+            const controlsInfo = document.getElementById('controls-info');
+            const isExpanded = controlsInfo && controlsInfo.classList.contains('expanded');
+            if (isExpanded) {
+                buttonText.textContent = lang === 'en' ? 'Hide Controls' : '隐藏控制说明';
+            } else {
+                buttonText.textContent = lang === 'en' ? 'Show Controls' : '显示控制说明';
+            }
+        }
+    }
+}
+
+// 使用 window.onload 确保所有外部库（特别是 THREE）已完全加载
+window.onload = function() {
+    // 语言切换初始化
+    const savedLanguage = localStorage.getItem('gafsuLanguage') || 'en';
+    switchLanguage(savedLanguage);
+    
+    // 为语言按钮添加点击事件
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchLanguage(btn.dataset.targetLang);
+        });
+    });
+    
+    // 手部动作说明折叠功能
+    const toggleControls = document.getElementById('toggle-controls');
+    const controlsInfo = document.getElementById('controls-info');
+    
+    if (toggleControls && controlsInfo) {
+        // 初始化：移动端默认隐藏，桌面端默认展开
+        const isMobile = window.innerWidth <= 768;
+        const currentLang = savedLanguage;
+        if (isMobile) {
+            // 移动端默认隐藏
+            controlsInfo.classList.remove('expanded');
+            toggleControls.querySelector('span:first-child').textContent = currentLang === 'en' ? 'Show Controls' : '显示控制说明';
+        } else {
+            // 桌面端默认展开
+            controlsInfo.classList.add('expanded');
+            toggleControls.classList.add('expanded');
+            toggleControls.querySelector('span:first-child').textContent = currentLang === 'en' ? 'Hide Controls' : '隐藏控制说明';
+        }
+        
+        // 折叠/展开切换
+        toggleControls.addEventListener('click', function() {
+            controlsInfo.classList.toggle('expanded');
+            toggleControls.classList.toggle('expanded');
+            
+            // 更新按钮文本
+            const span = toggleControls.querySelector('span:first-child');
+            const currentLang = document.querySelector('.lang-btn.active').dataset.lang;
+            if (controlsInfo.classList.contains('expanded')) {
+                span.textContent = currentLang === 'en' ? 'Hide Controls' : '隐藏控制说明';
+            } else {
+                span.textContent = currentLang === 'en' ? 'Show Controls' : '显示控制说明';
+            }
+        });
+        
+        // 监听窗口大小变化，调整默认状态
+        window.addEventListener('resize', function() {
+            const isMobile = window.innerWidth <= 768;
+            const currentLang = document.querySelector('.lang-btn.active').dataset.lang;
+            if (isMobile) {
+                // 移动端默认隐藏
+                controlsInfo.classList.remove('expanded');
+                toggleControls.classList.remove('expanded');
+                toggleControls.querySelector('span:first-child').textContent = currentLang === 'en' ? 'Show Controls' : '显示控制说明';
+            } else {
+                // 桌面端默认展开
+                controlsInfo.classList.add('expanded');
+                toggleControls.classList.add('expanded');
+                toggleControls.querySelector('span:first-child').textContent = currentLang === 'en' ? 'Hide Controls' : '隐藏控制说明';
+            }
+        });
+    }
+    // 检查移动端
+    const isMobile = window.innerWidth <= 768;
+    const scaleFactor = isMobile ? 0.5 : 1.0;
+
+    const CONFIG = {
+        particleCount: 2000, 
+        ringParticleCount: 2000, 
+        lineCount: 450, 
+        sphereBaseRadius: 8.0 * scaleFactor, 
+        minCamDist: 10,  // 调整最小距离为10，允许镜头更近
+        maxCamDist: 70,  
+        frameParticleRatio: 0.2, // 20%的粒子替换为相框
+        colors: {
+            bright: new THREE.Color(0x90e0ef),
+            mid: new THREE.Color(0x00b4d8),
+            accent: new THREE.Color(0x48cae4),
+            ringBase: new THREE.Color(0xade8f4),
+            ringGlow: new THREE.Color(0xffffff),
+            neural: new THREE.Color(0x48cae4),
+            frame: new THREE.Color(0xf8f9fa),
+            frameShadow: new THREE.Color(0x333333)
+        }
+    };
+
+    let scene, camera, renderer, clock;
+    let sphereGroup; 
+    let particles, rings, neuralNet;
+    
+    // 简化handData，只保留核心手势属性
+    let handData = { 
+        detected: false, 
+        x: 0, 
+        y: 0, 
+        z: 0, 
+        angle: 0,
+        // 手势状态
+        isFiveFingerOpen: false, // 五指完全张开
+        isFist: false,           // 握拳状态
+        isPinch: false,          // 捏合状态
+        is8Gesture: false,       // 8字手势
+        // 拇指食指距离
+        thumbIndexDistance: 0,   // 拇指和食指之间的距离
+        prevThumbIndexDistance: 0, // 上一帧拇指和食指之间的距离
+        // 手势置信度
+        gestureConfidence: 0,     // 手势识别置信度
+        // 状态跟踪
+        prevIsFiveFingerOpen: false, // 上一帧五指张开状态
+        prevIsFist: false,            // 上一帧握拳状态
+        prevIsPinch: false            // 上一帧捏合状态
+    };
+    
+    let camTargetDist = isMobile ? 70 : 70; // 将初始默认相机高度调整为70
+    
+    // 手势状态
+    let gestureState = {
+        isExpanded: false, // 是否处于散开状态
+        expansionScale: 1.0, // 散开和放大比例
+        targetExpansionScale: 1.0, // 目标散开比例
+        prevHandY: 0, // 上一帧的手部Y位置
+        moveOffset: new THREE.Vector3(0, 0, 0), // 移动偏移量，替代直接修改位置
+        // 旋转状态记录
+        savedRotationY: 0, // 握拳前的Y轴旋转角度
+        savedRotationX: 0, // 握拳前的X轴旋转角度
+        savedRotationZ: 0, // 握拳前的Z轴旋转角度
+        wasFist: false, // 上一帧是否为握拳状态
+        isRotationLocked: false, // 是否锁定镜头角度
+        // Focus状态
+        isFocused: false, // 是否处于focus状态
+        focusFrame: null, // focus状态下的中间相框
+        originalParticlePositions: [], // 粒子原始位置，用于focus状态恢复
+        originalParticleScales: [], // 粒子原始缩放，用于focus状态恢复
+        focusStartTime: 0, // focus状态开始时间
+        focusEntryCamDist: 0, // 进入focus模式时的默认相机距离
+        // 连续手势检测
+        gestureSequence: [], // 存储最近的手势序列
+        lastGestureChangeTime: 0, // 上一次手势变化的时间
+        gestureTimeout: 1000 // 手势序列超时时间（毫秒）
+    };
+    
+    // 全局变量：存储照片列表
+    let photoList = [
+        "GALLERY/上海外国语大学1.jpg",
+        "GALLERY/上海对外经贸大学2.jpg",
+        "GALLERY/上海对外经贸大学3.jpg",
+        "GALLERY/东京外国语大学1.jpg",
+        "GALLERY/东京外国语大学2.jpg",
+        "GALLERY/东京外国语大学3.jpg",
+        "GALLERY/乌兹别克斯坦国立世界语言大学1.jpg",
+        "GALLERY/利马大学3.jpg",
+        "GALLERY/北京外国语大学1.jpg",
+        "GALLERY/北京外国语大学3.jpg",
+        "GALLERY/北京第二外国语学院2.jpg",
+        "GALLERY/北京第二外国语学院3.jpg",
+        "GALLERY/北京语言大学2.jpg",
+        "GALLERY/北京语言大学3.jpg",
+        "GALLERY/古吉拉特中央大学1.jpg",
+        "GALLERY/古吉拉特中央大学2.jpg",
+        "GALLERY/吉林外国语大学1.jpg",
+        "GALLERY/吉林外国语大学2.jpg",
+        "GALLERY/吉林外国语大学3.jpg",
+        "GALLERY/哈萨克斯坦国立大学2.jpg",
+        "GALLERY/哈萨克斯坦国立大学3.jpg",
+        "GALLERY/四川外国语大学3.jpg",
+        "GALLERY/国际关系学院1.jpg",
+        "GALLERY/国际关系学院2.jpg",
+        "GALLERY/国际关系学院3.jpg",
+        "GALLERY/基辅国立语言大学1.jpg",
+        "GALLERY/基辅国立语言大学2.jpg",
+        "GALLERY/墨西哥国立自治大学1.jpg",
+        "GALLERY/墨西哥国立自治大学2.jpg",
+        "GALLERY/墨西哥国立自治大学3.jpg",
+        "GALLERY/外交学院1.jpg",
+        "GALLERY/外交学院2.jpg",
+        "GALLERY/大连外国语大学1.jpg",
+        "GALLERY/大连外国语大学2.jpg",
+        "GALLERY/天津外国语大学1.jpg",
+        "GALLERY/天津外国语大学2.jpg",
+        "GALLERY/对外经济贸易大学1.jpg",
+        "GALLERY/对外经济贸易大学2.jpg",
+        "GALLERY/对外经济贸易大学3.jpg",
+        "GALLERY/广东外语外贸大学2.jpg",
+        "GALLERY/慕尼黑高翻学院1.jpg",
+        "GALLERY/慕尼黑高翻学院2.jpg",
+        "GALLERY/斯里·贾耶瓦日德纳大学1.jpg",
+        "GALLERY/斯里·贾耶瓦日德纳大学2.jpg",
+        "GALLERY/日惹国立大学2.jpg",
+        "GALLERY/日惹国立大学3.jpg",
+        "GALLERY/明斯克国立语言大学3.jpg",
+        "GALLERY/智利瓦尔帕莱索天主教大学1.jpg",
+        "GALLERY/智利瓦尔帕莱索天主教大学2.jpg",
+        "GALLERY/河内国家大学所属人文社科大学3.jpg",
+        "GALLERY/浙江外国语学院2.jpg",
+        "GALLERY/浙江外国语学院3.jpg",
+        "GALLERY/浙江师范大学2.jpg",
+        "GALLERY/浙江师范大学3.jpg",
+        "GALLERY/浙江越秀外国语学院1.jpg",
+        "GALLERY/浙江越秀外国语学院2.jpg",
+        "GALLERY/清迈皇家大学.jpg",
+        "GALLERY/穆罕默德五世大学1.jpg",
+        "GALLERY/索菲亚大学1.jpg",
+        "GALLERY/索菲亚大学2.jpg",
+        "GALLERY/索菲亚大学3.jpg",
+        "GALLERY/莫斯科国立语言大学2.jpg",
+        "GALLERY/莫斯科国立语言大学3.jpg",
+        "GALLERY/莫斯科国际关系学院1.jpg",
+        "GALLERY/西安外国语大学1.jpg",
+        "GALLERY/西安外国语大学2.jpg",
+        "GALLERY/阿塞拜疆语言大学1.jpg",
+        "GALLERY/阿塞拜疆语言大学2.jpg",
+        "GALLERY/韩国外国语大学1.jpg",
+        "GALLERY/首都经济贸易大学2.jpg",
+        "GALLERY/麦克雷雷大学1.jpg",
+        "GALLERY/麦克雷雷大学2.jpg",
+        "GALLERY/麦克雷雷大学3.jpg"
+    ];
+    
+    // 存储原始位置和缩放，用于还原
+    let originalFrameData = [];
+    let hasStoredOriginalData = false; // 标记是否已经存储了原始数据
+    let originalParticlePosition = new THREE.Vector3();
+    
+    // Focus状态管理函数
+    function enterFocusMode() {
+        if (gestureState.isFocused) return;
+        
+        console.log('进入Focus模式');
+        gestureState.isFocused = true;
+        gestureState.focusStartTime = Date.now();
+        // 将focus模式下默认相机高度调整为15，最大相机距离为15
+        camTargetDist = 15;
+        gestureState.focusEntryCamDist = 15; // 设置focus模式下相机距离最大值为15
+        
+        // 保存粒子原始位置
+        gestureState.originalParticlePositions = [];
+        const dummy = new THREE.Object3D();
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            particles.getMatrixAt(i, dummy.matrix);
+            dummy.position.setFromMatrixPosition(dummy.matrix);
+            gestureState.originalParticlePositions.push(dummy.position.clone());
+        }
+        
+        // 隐藏所有现有相框
+        sphereGroup.children.forEach(child => {
+            if (child instanceof THREE.Group && child.children.length > 1) {
+                child.visible = false;
+            }
+        });
+        
+        // 创建中间静止相框
+        createFocusFrame();
+    }
+    
+    function exitFocusMode() {
+        if (!gestureState.isFocused) return;
+        
+        console.log('退出Focus模式');
+        gestureState.isFocused = false;
+        gestureState.focusEntryCamDist = 0; // 重置默认相机距离
+        gestureState.isRotationLocked = false; // 退出focus模式时解锁旋转
+        
+        // 如果相框直接在场景中，将其放回sphereGroup，并恢复原始大小
+        if (gestureState.focusFrame && gestureState.focusFrame.parent === scene) {
+            scene.remove(gestureState.focusFrame);
+            gestureState.focusFrame.position.set(0, 0, 0);
+            // 恢复原始大小
+            gestureState.focusFrame.scale.set(1, 1, 1);
+            sphereGroup.add(gestureState.focusFrame);
+        }
+        
+        // 恢复粒子原始位置
+        const dummy = new THREE.Object3D();
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            dummy.position.copy(gestureState.originalParticlePositions[i]);
+            dummy.updateMatrix();
+            particles.setMatrixAt(i, dummy.matrix);
+        }
+        particles.instanceMatrix.needsUpdate = true;
+        
+        // 显示所有现有相框
+        sphereGroup.children.forEach(child => {
+            if (child instanceof THREE.Group && child.children.length > 1) {
+                child.visible = true;
+            }
+        });
+        
+        // 移除中间相框
+        if (gestureState.focusFrame) {
+            sphereGroup.remove(gestureState.focusFrame);
+            gestureState.focusFrame = null;
+        }
+    }
+    
+    // 创建中间静止相框
+    function createFocusFrame() {
+        // 随机选择一张照片
+        const randomPhotoUrl = photoList[Math.floor(Math.random() * photoList.length)];
+        
+        // 从文件名中提取大学名称，除去数字
+        const fileName = randomPhotoUrl.split('/').pop(); // 获取文件名
+        // 正则表达式匹配并移除数字和.jpg后缀，保留大学名称
+        const universityName = fileName.replace(/[0-9]+\.jpg$/, '').replace(/[^\u4e00-\u9fa5a-zA-Z]/g, ' ').trim();
+        
+        // 使用TextureLoader加载照片
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load(
+            randomPhotoUrl,
+            (texture) => {
+                // 创建相框组
+                const frameGroup = new THREE.Group();
+                frameGroup.position.set(0, 0, 0); // 初始位置
+                frameGroup.renderOrder = 2; // 确保渲染在最上层
+                
+                // 相框尺寸
+                const frameSize = 2.0;
+                const frameThickness = 0.1;
+                
+                // 创建外框
+                const outerFrameGeometry = new THREE.BoxGeometry(frameSize * 1.1, frameSize, frameThickness);
+                
+                // 给立方体各面添加不同灰度，增强立体感
+                // 材质顺序：右面, 左面, 上面, 下面, 前面, 后面
+                const frameMaterials = [
+                    new THREE.MeshBasicMaterial({ color: 0xcccccc, depthWrite: true, depthTest: true }), // 右面（稍暗）
+                    new THREE.MeshBasicMaterial({ color: 0x999999, depthWrite: true, depthTest: true }), // 左面（最暗）
+                    new THREE.MeshBasicMaterial({ color: 0xdddddd, depthWrite: true, depthTest: true }), // 上面（较亮）
+                    new THREE.MeshBasicMaterial({ color: 0x888888, depthWrite: true, depthTest: true }), // 下面（暗）
+                    new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: true, depthTest: true }), // 前面（最亮）
+                    new THREE.MeshBasicMaterial({ color: 0x666666, depthWrite: true, depthTest: true })  // 后面（暗）
+                ];
+                
+                const outerFrame = new THREE.Mesh(outerFrameGeometry, frameMaterials);
+                frameGroup.add(outerFrame);
+                
+                // 创建照片
+                const photoGeometry = new THREE.PlaneGeometry(frameSize, frameSize * 0.8);
+                const photoMaterial = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 1.0,
+                    depthWrite: true,
+                    depthTest: true
+                });
+                const photo = new THREE.Mesh(photoGeometry, photoMaterial);
+                photo.position.z = frameThickness * 0.5;
+                frameGroup.add(photo);
+                
+                // 创建大学名称文本标签
+                // 使用Canvas创建文本纹理
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 512;
+                canvas.height = 128;
+                
+                // 绘制背景
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制文本，字体减小一倍到24px
+                ctx.fillStyle = '#000000';
+                ctx.font = 'bold 24px Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(universityName, canvas.width / 2, canvas.height / 2);
+                
+                // 创建纹理
+                const textTexture = new THREE.CanvasTexture(canvas);
+                textTexture.needsUpdate = true;
+                
+                // 创建文本平面，调整高度适应相框白边，宽度减小到原来的2/3
+                const textGeometry = new THREE.PlaneGeometry(frameSize * 0.9 * (2/3), 0.2);
+                const textMaterial = new THREE.MeshBasicMaterial({
+                    map: textTexture,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    depthWrite: true,
+                    depthTest: true
+                });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                
+                // 定位文本：直接放在图片下方的相框白边上
+                // 相框高度为frameSize，照片高度为frameSize*0.8，所以白边在照片下方，高度为0.2*frameSize
+                // 计算精确位置，确保文本完全在白边内
+                const photoBottom = -frameSize * 0.4; // 照片底部位置
+                const frameBottom = -frameSize * 0.5; // 相框底部位置
+                const textHeight = 0.2; // 文本几何高度
+                // 文本垂直居中于白边：(照片底部 + 相框底部) / 2
+                const textYPosition = (photoBottom + frameBottom) / 2;
+                textMesh.position.set(0, textYPosition, frameThickness * 0.5);
+                frameGroup.add(textMesh);
+                
+                // 添加到场景
+                sphereGroup.add(frameGroup);
+                gestureState.focusFrame = frameGroup;
+            },
+            undefined,
+            (error) => {
+                console.error('加载Focus模式照片失败:', error);
+            }
+        );
+    }
+
+    const sphereVertexShader = `
+        attribute float aSize;
+        attribute vec3 aColor;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec3 vColor;
+        
+        void main() {
+            vColor = aColor;
+            vNormal = normalize(normalMatrix * (instanceMatrix * vec4(normal, 0.0)).xyz);
+            vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position * aSize, 1.0);
+            vViewPosition = -mvPosition.xyz;
+            gl_Position = projectionMatrix * mvPosition;
+        }
+    `;
+
+    const sphereFragmentShader = `
+        uniform float uTime;
+        varying vec3 vNormal;
+        varying vec3 vViewPosition;
+        varying vec3 vColor;
+        
+        void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 viewDir = normalize(vViewPosition);
+            float dotProduct = max(dot(normal, viewDir), 0.0);
+            float fresnel = pow(1.0 - dotProduct, 2.0);
+            vec3 finalColor = mix(vColor * 0.2, vColor, dotProduct) + (vColor * fresnel * 0.8);
+            float pulse = 0.95 + sin(uTime * 3.0) * 0.05;
+            gl_FragColor = vec4(finalColor * pulse, 1.0);
+        }
+    `;
+
+    function createHighIntensityGlowTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+        gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(0.6, 'rgba(173, 232, 244, 0.4)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(canvas);
+    }
+    
+    function createFrame(texture) {
+        console.log('createFrame函数被调用，纹理:', texture);
+        
+        // 创建相框几何体，大小缩减到现在的2/3
+        const frameSize = 0.4 * scaleFactor * (2/3);
+        const frameThickness = 0.05 * scaleFactor * (2/3);
+        const photoSize = frameSize - frameThickness * 2;
+        
+        // 相框外框
+        const outerFrameGeometry = new THREE.BoxGeometry(frameSize * 1.5, frameSize, frameThickness);
+        
+        // 创建相框材质
+        const frameMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.colors.frame,
+            metalness: 0.2,
+            roughness: 0.8,
+            side: THREE.DoubleSide,
+            depthWrite: true, // 写入深度缓冲区
+            depthTest: true   // 进行深度测试
+        });
+        
+        // 直接创建一个彩色平面，测试是否能显示
+        const testMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff00, // 绿色，用于测试
+            side: THREE.DoubleSide
+        });
+        
+        // 创建相框组
+        const frameGroup = new THREE.Group();
+        
+        // 添加外框
+        const outerFrame = new THREE.Mesh(outerFrameGeometry, frameMaterial);
+        outerFrame.renderOrder = 1; // 确保外框渲染在神经网络之上
+        outerFrame.material.depthWrite = true;
+        outerFrame.material.depthTest = true;
+        frameGroup.add(outerFrame);
+        
+        // 添加测试平面（绿色），用于确认相框位置
+        const testGeometry = new THREE.PlaneGeometry(photoSize * 1.4, photoSize - frameThickness * 2);
+        const testPlane = new THREE.Mesh(testGeometry, testMaterial);
+        testPlane.position.z = frameThickness * 0.4; // 稍微靠前，确保可见
+        testPlane.renderOrder = 1; // 确保测试平面渲染在神经网络之上
+        testPlane.material.depthWrite = true;
+        testPlane.material.depthTest = true;
+        frameGroup.add(testPlane);
+        
+        // 只有当纹理有效时，才添加真实图片
+        if (texture && texture.isTexture) {
+            console.log('纹理有效，添加真实图片');
+            
+            // 设置纹理属性
+            texture.wrapS = THREE.ClampToEdgeWrapping;
+            texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            // 创建照片材质（使用已经加载好的纹理）
+            const photoMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: true, // 写入深度缓冲区
+                depthTest: true   // 进行深度测试
+            });
+            
+            // 添加照片
+            const photoGeometry = new THREE.PlaneGeometry(photoSize * 1.4, photoSize - frameThickness * 2);
+            const photo = new THREE.Mesh(photoGeometry, photoMaterial);
+            photo.position.z = frameThickness * 0.3;
+            photo.renderOrder = 1; // 确保照片渲染在神经网络之上
+            frameGroup.add(photo);
+        } else {
+            console.warn('纹理无效，仅显示测试平面');
+        }
+        
+        // 添加阴影
+        const shadowGeometry = new THREE.BoxGeometry(frameSize * 1.7, frameSize * 1.1, frameThickness * 0.3);
+        const shadowMaterial = new THREE.MeshStandardMaterial({
+            color: CONFIG.colors.frameShadow,
+            transparent: true,
+            opacity: 0.3,
+            roughness: 0.9,
+            depthWrite: true,
+            depthTest: true
+        });
+        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+        shadow.position.z = -frameThickness * 0.5;
+        shadow.renderOrder = 1; // 确保阴影渲染在神经网络之上
+        frameGroup.add(shadow);
+        
+        return frameGroup;
+    }
+
+    function getTextCoordinates(text, radiusMult, repeat = 3, widthScale = 0.333) { // 默认widthScale减小为原来的2/3 (0.5 * 2/3 ≈ 0.333)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 2000;
+        canvas.height = 200;
+        
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 140px Arial Black, Gadget, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        let fullText = "";
+        for(let i=0; i<repeat; i++) fullText += text + "      "; // 增加空格数量，从4个增加到6个，拉大字母间距
+        
+        ctx.save();
+        const totalChars = fullText.length;
+        const charSpacing = 2000 / totalChars;
+        
+        for(let i = 0; i < totalChars; i++) {
+            const char = fullText[i];
+            const x = (i * charSpacing) + (charSpacing / 2);
+            const y = 100;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(-widthScale, 1);
+            ctx.fillText(char, 0, 0);
+            ctx.restore();
+        }
+        ctx.restore();
+        
+        const imgData = ctx.getImageData(0, 0, 2000, 200).data;
+        const points = [];
+        
+        for (let y = 0; y < 200; y += 3) {
+            for (let x = 0; x < 2000; x += 3) {
+                const alpha = imgData[(y * 2000 + x) * 4 + 3];
+                if (alpha > 150) {
+                    const angle = (x / 2000) * Math.PI * 2 + Math.PI / 2;
+                    const r = CONFIG.sphereBaseRadius * radiusMult;
+                    const h = (100 - y) * 0.008 * scaleFactor;
+                    points.push({
+                        pos: new THREE.Vector3(
+                            Math.cos(angle) * r,
+                            h,
+                            Math.sin(angle) * r
+                        ),
+                        isText: true
+                    });
+                }
+            }
+        }
+        return points;
+    }
+
+    function initThree() {
+        scene = new THREE.Scene();
+        clock = new THREE.Clock();
+        
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1500);
+        camera.position.z = camTargetDist;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        sphereGroup = new THREE.Group();
+        scene.add(sphereGroup);
+        
+        // 创建光源以增强阴影效果
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        const sphereGeom = new THREE.SphereGeometry(0.1 * scaleFactor, 8, 8); 
+        const instGeom = new THREE.InstancedBufferGeometry().copy(sphereGeom);
+        const sizes = new Float32Array(CONFIG.particleCount);
+        const colors = new Float32Array(CONFIG.particleCount * 3);
+        const colorOptions = [CONFIG.colors.bright, CONFIG.colors.mid, CONFIG.colors.accent];
+
+        for(let i=0; i<CONFIG.particleCount; i++) {
+            sizes[i] = 0.3 + Math.random() * 0.5;
+            const c = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+            colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+        }
+        instGeom.setAttribute('aSize', new THREE.InstancedBufferAttribute(sizes, 1));
+        instGeom.setAttribute('aColor', new THREE.InstancedBufferAttribute(colors, 3));
+
+        const sphereMat = new THREE.ShaderMaterial({
+            uniforms: { uTime: { value: 0 } },
+            vertexShader: sphereVertexShader,
+            fragmentShader: sphereFragmentShader,
+        });
+        
+        particles = new THREE.InstancedMesh(instGeom, sphereMat, CONFIG.particleCount);
+        const dummy = new THREE.Object3D();
+        
+        // 创建粒子位置数组，用于后续放置相框
+        const particlePositions = [];
+        
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            const phi = Math.random() * Math.PI * 2;
+            const theta = Math.acos(2 * Math.random() - 1);
+            const r = CONFIG.sphereBaseRadius + (Math.random() - 0.5) * 0.2; 
+            const position = new THREE.Vector3(r * Math.sin(theta) * Math.cos(phi), r * Math.sin(theta) * Math.sin(phi), r * Math.cos(theta));
+            particlePositions.push(position);
+            dummy.position.copy(position);
+            dummy.updateMatrix();
+            particles.setMatrixAt(i, dummy.matrix);
+        }
+        sphereGroup.add(particles);
+        
+        // 移除红色测试平面，保持场景整洁
+        console.log('开始创建带有真实图片的相框');
+        
+        // 隐藏加载界面
+        const loadingElement = document.getElementById('loader');
+        if (loadingElement) {
+            setTimeout(() => {
+                loadingElement.style.opacity = '0';
+                setTimeout(() => {
+                    loadingElement.style.display = 'none';
+                }, 1000);
+            }, 500);
+        }
+        
+        // 使用固定的位置，确保相框可见
+        const fixedPositions = [
+            new THREE.Vector3(0, 3, -12),   // 上方中央
+            new THREE.Vector3(-4, 0, -12),  // 左侧中央
+            new THREE.Vector3(4, 0, -12),   // 右侧中央
+            new THREE.Vector3(0, -3, -12),  // 下方中央
+            new THREE.Vector3(0, 0, -10)    // 正中央，离相机更近
+        ];
+        
+        // 完整的GALLERY文件夹jpg图片列表
+        // 使用与全局变量相同的photoList，避免重复定义
+        // 这样可以确保两个地方使用相同的图片列表，便于维护
+        const localPhotoList = photoList;
+        
+        console.log(`开始创建 ${localPhotoList.length} 个带有真实图片的相框`);
+        
+        // 存储已使用的位置，避免相框重叠
+        const usedPositions = [];
+        const minDistance = 1.5; // 减小最小距离，允许更密集的分布
+        
+        // 为所有图片创建相框，并随机分布在场景中
+        localPhotoList.forEach((photoUrl, index) => {
+            // 使用TextureLoader加载图片
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load(
+                photoUrl,
+                (texture) => {
+                    // 创建带有真实图片或默认颜色的相框
+                    const frameSize = 0.8; // 适当大小，确保美观
+                    const frameThickness = 0.08;
+                    
+                    // 创建相框组
+                    const frameGroup = new THREE.Group();
+                    
+                    // 添加外框，使用和focus模式一致的参数，增强立体感
+                    const outerFrameGeometry = new THREE.BoxGeometry(frameSize * 1.1, frameSize, frameThickness);
+                    
+                    // 使用多材质数组，为不同面设置不同灰度，增强立体感
+                    // 材质顺序：右面, 左面, 上面, 下面, 前面, 后面
+                    const frameMaterials = [
+                        new THREE.MeshBasicMaterial({ color: 0xcccccc, depthWrite: true, depthTest: true }), // 右面（稍暗）
+                        new THREE.MeshBasicMaterial({ color: 0x999999, depthWrite: true, depthTest: true }), // 左面（最暗）
+                        new THREE.MeshBasicMaterial({ color: 0xaaaaaa, depthWrite: true, depthTest: true }), // 上面（较亮）
+                        new THREE.MeshBasicMaterial({ color: 0x888888, depthWrite: true, depthTest: true }), // 下面（暗）
+                        new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: true, depthTest: true }), // 前面（最亮）
+                        new THREE.MeshBasicMaterial({ color: 0xffffff, depthWrite: true, depthTest: true })  // 后面（最亮）
+                    ];
+                    
+                    const outerFrame = new THREE.Mesh(outerFrameGeometry, frameMaterials);
+                    outerFrame.renderOrder = 1; // 确保外框渲染在神经网络线之上
+                    frameGroup.add(outerFrame);
+                    
+                    // 检查纹理是否有效
+                    let photoMaterial;
+                    if (texture && texture.image && texture.image.width > 0 && texture.image.height > 0) {
+                        // 纹理有效，使用真实图片
+                        console.log(`成功加载图片:`, photoUrl);
+                        
+                        // 设置纹理属性，确保图片正确显示
+                        texture.wrapS = THREE.ClampToEdgeWrapping;
+                        texture.wrapT = THREE.ClampToEdgeWrapping;
+                        texture.minFilter = THREE.LinearFilter;
+                        texture.magFilter = THREE.LinearFilter;
+                        
+                        photoMaterial = new THREE.MeshBasicMaterial({
+                            map: texture,
+                            side: THREE.DoubleSide,
+                            transparent: true, // 启用透明，允许调整透明度
+                            opacity: 1.0,
+                            depthWrite: true, // 确保正确的深度测试
+                            depthTest: true // 启用深度测试，避免渲染顺序问题
+                        });
+                    } else {
+                        // 纹理无效，使用默认颜色，避免纯白色
+                        console.warn(`图片无效，使用默认颜色:`, photoUrl);
+                        
+                        // 使用浅蓝色作为默认颜色，避免纯白色
+                        photoMaterial = new THREE.MeshBasicMaterial({
+                            color: 0x87CEEB, // 浅蓝色
+                            side: THREE.DoubleSide,
+                            depthWrite: true,
+                            transparent: true // 启用透明，允许调整透明度
+                        });
+                    }
+                    
+                    // 添加照片（正面）
+                    const photoGeometry = new THREE.PlaneGeometry(frameSize * 0.9, frameSize * 0.9);
+                    const photo = new THREE.Mesh(photoGeometry, photoMaterial);
+                    photo.position.z = frameThickness * 0.5;
+                    photo.renderOrder = 1; // 设置渲染顺序，确保正确显示
+                    frameGroup.add(photo);
+                    
+                    // 添加相同的照片到背面，确保正反面都显示相同图案
+                    const backPhoto = new THREE.Mesh(photoGeometry, photoMaterial);
+                    backPhoto.position.z = -frameThickness * 0.5; // 背面位置
+                    backPhoto.rotation.y = Math.PI; // 旋转180度，面向背面
+                    backPhoto.renderOrder = 1;
+                    frameGroup.add(backPhoto);
+                    
+                    // 星球表面的基础半径，相框将紧贴星球表面
+                    const planetRadius = CONFIG.sphereBaseRadius + 0.3; // 减小偏移量，更贴近星球表面
+                    
+                    // 直接使用黄金螺旋算法生成所有相册位置，确保在球面上均匀分布
+                    const n = localPhotoList.length;
+                    const offset = 2.0 / n;
+                    const increment = Math.PI * (3 - Math.sqrt(5)); // 黄金角，确保均匀分布
+                    
+                    const theta = index * increment; // 方位角，确保均匀分布
+                    const cosPhi = 1 - (index + 0.5) * offset; // 极角的余弦值，确保等面积分布
+                    const sinPhi = Math.sqrt(1 - cosPhi * cosPhi); // 极角的正弦值
+                    
+                    // 计算最终位置，使用黄金螺旋算法确保均匀分布
+                    const position = new THREE.Vector3(
+                        planetRadius * sinPhi * Math.cos(theta),
+                        planetRadius * sinPhi * Math.sin(theta),
+                        planetRadius * cosPhi
+                    );
+                    
+                    // 设置相框位置
+                    frameGroup.position.copy(position);
+                    
+                    // 确保相框面向球心
+                    frameGroup.lookAt(0, 0, 0);
+                    
+                    // 添加到sphereGroup，保持与星球一起旋转
+                    frameGroup.renderOrder = 1; // 设置渲染顺序，确保相框渲染在神经网络线之上
+                    sphereGroup.add(frameGroup);
+                    
+                    // 记录使用的位置
+                    usedPositions.push(position);
+                },
+                undefined,
+                (error) => {
+                    console.error(`加载图片失败:`, photoUrl, error);
+                    
+                    // 图片加载失败时，不创建相框，避免出现纯白色
+                }
+            );
+        });
+        
+        console.log('相框创建完成，正在加载图片...');
+        
+        // 本地服务器提示
+        console.log('\n==========================================');
+        console.log('本地服务器：http://localhost:8000');
+        console.log('访问地址：http://localhost:8000/GFASU GALLERY.html');
+        console.log('或使用新服务器：http://localhost:8001/GFASU GALLERY.html');
+        console.log('==========================================\n');
+
+        const anchorPoints = [];
+        // 调整神经网络球半径，使其覆盖粒子球和相框表面
+        // 粒子球半径范围: CONFIG.sphereBaseRadius ± 0.1
+        // 相框半径: CONFIG.sphereBaseRadius + 0.3
+        const neuralRadius = CONFIG.sphereBaseRadius + 0.5; // 确保覆盖所有元素
+        for(let i=0; i<CONFIG.lineCount; i++) {
+            // 使用极角和方位角生成均匀分布的点，覆盖整个球体表面
+            const theta = Math.acos(2 * Math.random() - 1); // 极角，确保等面积分布
+            const phi = Math.random() * Math.PI * 2; // 方位角
+            const v = new THREE.Vector3().setFromSphericalCoords(neuralRadius, theta, phi);
+            anchorPoints.push(v);
+        }
+        const netGeometry = new THREE.BufferGeometry();
+        const positions = [];
+        for (let i = 0; i < anchorPoints.length; i++) {
+            const p1 = anchorPoints[i];
+            let connections = 0;
+            for (let j = i + 1; j < anchorPoints.length && connections < 2; j++) {
+                const p2 = anchorPoints[j];
+                if (p1.distanceTo(p2) < 1.8 * scaleFactor) { 
+                    positions.push(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+                    connections++;
+                }
+            }
+        }
+        netGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        const netMaterial = new THREE.LineBasicMaterial({ 
+            color: CONFIG.colors.neural, 
+            transparent: true, 
+            opacity: 0.25, 
+            blending: THREE.AdditiveBlending,
+            depthWrite: false, // 不写入深度缓冲区，确保相框始终在上面
+            depthTest: false     // 完全禁用深度测试，确保神经网络线不会遮挡任何物体
+        });
+        neuralNet = new THREE.LineSegments(netGeometry, netMaterial);
+        neuralNet.renderOrder = -1; // 设置更低的渲染顺序，确保神经网络线渲染在相框之下
+        sphereGroup.add(neuralNet);
+
+        const ringTex = createHighIntensityGlowTexture();
+        rings = new THREE.Group();
+        
+        const ringLayouts = [
+            { radius: 2.8, text: "USFAG", repeat: 4, widthScale: 0.4, tilt: 0.7 }, // 宽度缩放因子减小为原来的2/3 (0.6 * 2/3 = 0.4)
+            { radius: 4.5, text: "USFAG", repeat: 6, widthScale: 0.3, tilt: -0.5 } // 宽度缩放因子减小为原来的2/3 (0.45 * 2/3 = 0.3)
+        ];
+
+        ringLayouts.forEach((layout, ringIdx) => {
+            const orbitGroup = new THREE.Group();
+            const textData = getTextCoordinates(layout.text, layout.radius, layout.repeat, layout.widthScale);
+            const ringGeom = new THREE.BufferGeometry();
+            const posArr = [];
+            const colArr = [];
+
+            textData.forEach(pt => {
+                posArr.push(pt.pos.x, pt.pos.y, pt.pos.z);
+                colArr.push(1.0, 1.0, 1.0);
+            });
+
+            for(let i=0; i<500; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = CONFIG.sphereBaseRadius * layout.radius + (Math.random()-0.5) * 1.2 * scaleFactor;
+                posArr.push(Math.cos(angle)*r, (Math.random()-0.5)*0.5*scaleFactor, Math.sin(angle)*r);
+                colArr.push(0.0, 0.7, 0.8);
+            }
+
+            ringGeom.setAttribute('position', new THREE.Float32BufferAttribute(posArr, 3));
+            ringGeom.setAttribute('color', new THREE.Float32BufferAttribute(colArr, 3));
+            
+            const ringMat = new THREE.PointsMaterial({
+                size: 0.375 * scaleFactor, // 点大小扩大1.5倍
+                map: ringTex,
+                transparent: true,
+                opacity: 1.0,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                vertexColors: true,
+                sizeAttenuation: true
+            });
+            
+            const ringPoints = new THREE.Points(ringGeom, ringMat);
+            orbitGroup.add(ringPoints);
+            
+            orbitGroup.rotation.x = layout.tilt; 
+            orbitGroup.userData.speed = 0.0015;
+            orbitGroup.userData.direction = ringIdx === 0 ? 1 : -1;
+            
+            rings.add(orbitGroup);
+        });
+        sphereGroup.add(rings);
+
+        window.addEventListener('resize', onWindowResize);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function initHandTracking() {
+        const videoElement = document.getElementById('input_video');
+        const canvasElement = document.getElementById('output_canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const loader = document.getElementById('loader');
+
+        const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+        
+        // 手势参数配置
+        const gestureParams = {
+            // 五指张开参数
+            fiveFingerOpen: {
+                minFingerLength: 0.08,    // 手指伸展长度阈值
+                maxFingerAngle: 0.5,       // 手指与手掌夹角阈值（弧度）
+                minConfidence: 0.8,        // 手势识别置信度阈值
+                smoothFactor: 0.2,         // 平滑因子
+                cooldownTime: 150          // 状态切换冷却时间（ms）
+            }
+        };
+        
+        // 状态跟踪
+        let lastGestureSwitchTime = 0;
+        
+        // 计算手指长度（从指根到指尖）
+        function calculateFingerLength(landmarks, baseIdx, tipIdx) {
+            const base = landmarks[baseIdx];
+            const tip = landmarks[tipIdx];
+            return Math.sqrt(
+                Math.pow(tip.x - base.x, 2) +
+                Math.pow(tip.y - base.y, 2)
+            );
+        }
+        
+        // 计算手指与手掌的夹角
+        function calculateFingerAngle(landmarks, wristIdx, baseIdx, tipIdx) {
+            const wrist = landmarks[wristIdx];
+            const base = landmarks[baseIdx];
+            const tip = landmarks[tipIdx];
+            
+            const v1 = new THREE.Vector2(base.x - wrist.x, base.y - wrist.y);
+            const v2 = new THREE.Vector2(tip.x - base.x, tip.y - base.y);
+            
+            v1.normalize();
+            v2.normalize();
+            
+            const dot = v1.dot(v2);
+            return Math.acos(Math.max(-1, Math.min(1, dot)));
+        }
+        
+        hands.onResults((results) => {
+            const currentTime = Date.now();
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            
+            // 默认状态
+            handData.detected = false;
+            handData.isFiveFingerOpen = false;
+            handData.isPinchGesture = false;
+            handData.gestureConfidence = 0;
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: 'rgba(144, 224, 239, 0.4)', lineWidth: 2});
+                drawLandmarks(canvasCtx, landmarks, {color: '#fff', lineWidth: 1, radius: 2});
+                
+                handData.detected = true;
+                handData.x = landmarks[9].x - 0.5;
+                handData.y = landmarks[9].y - 0.5;
+                
+                const indexTip = landmarks[8]; const pinkyTip = landmarks[20];
+                handData.angle = Math.atan2(indexTip.y - pinkyTip.y, indexTip.x - pinkyTip.x);
+                
+                // 1. 计算五指张开特征
+                const fingerInfo = {
+                    thumb: {
+                        length: calculateFingerLength(landmarks, 2, 4),
+                        angle: calculateFingerAngle(landmarks, 0, 2, 4)
+                    },
+                    index: {
+                        length: calculateFingerLength(landmarks, 5, 8),
+                        angle: calculateFingerAngle(landmarks, 0, 5, 8)
+                    },
+                    middle: {
+                        length: calculateFingerLength(landmarks, 9, 12),
+                        angle: calculateFingerAngle(landmarks, 0, 9, 12)
+                    },
+                    ring: {
+                        length: calculateFingerLength(landmarks, 13, 16),
+                        angle: calculateFingerAngle(landmarks, 0, 13, 16)
+                    },
+                    pinky: {
+                        length: calculateFingerLength(landmarks, 17, 20),
+                        angle: calculateFingerAngle(landmarks, 0, 17, 20)
+                    }
+                };
+                
+                // 2. 五指张开手势识别
+                let fiveFingerOpenScore = 0;
+                let extendedFingers = 0;
+                
+                // 使用相对阈值
+                const dynamicLengthThreshold = gestureParams.fiveFingerOpen.minFingerLength * 0.8; // 降低阈值
+                const dynamicAngleThreshold = gestureParams.fiveFingerOpen.maxFingerAngle * 0.9; // 降低阈值
+                
+                for (const [fingerName, info] of Object.entries(fingerInfo)) {
+                    if (info.length > dynamicLengthThreshold && 
+                        info.angle > dynamicAngleThreshold) {
+                        fiveFingerOpenScore += 1;
+                        extendedFingers++;
+                    }
+                }
+                
+                const fiveFingerConfidence = fiveFingerOpenScore / 5;
+                
+                // 4. 根据关键点重新实现手势识别
+                
+                // 关键点定义（复用已声明的变量）
+                const wrist = landmarks[0]; // 手腕
+                const otherTips = [12, 16, 20].map(idx => landmarks[idx]); // 其他指尖
+                
+                // 计算四指尖到手腕的平均距离（Fist和Open Hand识别）
+                const tipsToWristDistances = otherTips.map(tip => Math.hypot(
+                    tip.x - wrist.x, 
+                    tip.y - wrist.y, 
+                    tip.z - wrist.z
+                ));
+                const avgTipsToWristDist = tipsToWristDistances.reduce((sum, dist) => sum + dist, 0) / otherTips.length;
+                
+                // 简化手势识别：只保留握拳、张开手掌和捏合三种手势
+                let isFist = false;
+                let isOpenHand = false;
+                let isPinch = false;
+                
+                // 获取拇指指尖（复用已声明的indexTip）
+                const thumbTip = landmarks[4]; // 拇指指尖
+                
+                // 计算手掌尺寸（基于手腕到中指根部的距离），用于归一化
+                const wristToMiddleBase = Math.hypot(
+                    landmarks[9].x - wrist.x,
+                    landmarks[9].y - wrist.y,
+                    landmarks[9].z - wrist.z
+                );
+                
+                // 使用相对距离进行判断，解决手掌远近影响识别的问题
+                // 归一化因子：使用手掌尺寸，确保不同距离下的手势识别一致
+                const normalizationFactor = wristToMiddleBase || 0.1; // 避免除以0
+                
+                // 计算拇指和食指之间的距离（归一化）
+                const thumbIndexDist = Math.hypot(
+                    thumbTip.x - indexTip.x, 
+                    thumbTip.y - indexTip.y,
+                    thumbTip.z - indexTip.z
+                );
+                const normalizedThumbIndexDist = thumbIndexDist / normalizationFactor;
+                
+                // 计算所有指尖到手腕的平均距离（用于握拳判断，归一化）
+                const allTips = [4, 8, 12, 16, 20].map(idx => landmarks[idx]); // 所有指尖
+                const allTipsToWristDistances = allTips.map(tip => Math.hypot(
+                    tip.x - wrist.x, 
+                    tip.y - wrist.y, 
+                    tip.z - wrist.z
+                ));
+                const avgTipsToWristDistRaw = allTipsToWristDistances.reduce((sum, dist) => sum + dist, 0) / allTips.length;
+                const normalizedAvgTipsToWristDist = avgTipsToWristDistRaw / normalizationFactor;
+                
+                // 1. 握拳检测：所有指尖到手腕的平均距离相对较小
+                if (normalizedAvgTipsToWristDist < 0.8) {
+                    isFist = true;
+                }
+                
+                // 2. 张开手掌检测：其他指尖（中指、无名指、小指）到手腕平均距离相对较大
+                // 复用之前计算的avgTipsToWristDist（基于otherTips，即中指、无名指、小指）
+                const normalizedAvgOtherTipsToWristDist = avgTipsToWristDist / normalizationFactor;
+                if (normalizedAvgOtherTipsToWristDist > 1.5) {
+                    isOpenHand = true;
+                }
+                
+                // 3. Pinch（捏合）检测：
+                // - 拇指和食指距离相对较小
+                // - 其他手指（中指、无名指、小指）距离到手腕平均距离相对较大
+                if (normalizedThumbIndexDist < 0.3 && normalizedAvgOtherTipsToWristDist > 1.5) {
+                    isPinch = true;
+                }
+                
+                // 4. 8字手势检测：仅在focus模式下开启
+                // - 拇指和食指距离相对较大
+                // - 其他手指（中指、无名指、小指）距离到手腕平均距离相对较小
+                handData.is8Gesture = false;
+                if (gestureState.isFocused) {
+                    // 增加调试日志
+                    console.log('8字手势检测：', {
+                        normalizedThumbIndexDist: normalizedThumbIndexDist,
+                        normalizedAvgOtherTipsToWristDist: normalizedAvgOtherTipsToWristDist
+                    });
+                    
+                    // 进一步降低阈值，提高灵敏度
+                    // 调整阈值：降低拇指食指距离阈值，提高其他手指到手腕距离阈值
+                    // 使8字手势更容易被检测到
+                    if (normalizedThumbIndexDist > 0.8 && normalizedAvgOtherTipsToWristDist < 1.0) {
+                        handData.is8Gesture = true;
+                        console.log('检测到8字手势');
+                    }
+                }
+                
+                // 计算拇指和食指之间的距离（复用已声明的thumbTip和indexTip）
+                handData.prevThumbIndexDistance = handData.thumbIndexDistance;
+                handData.thumbIndexDistance = Math.hypot(
+                    thumbTip.x - indexTip.x,
+                    thumbTip.y - indexTip.y,
+                    thumbTip.z - indexTip.z
+                );
+                
+                // 更新handData中的手势状态
+                handData.isFist = isFist;
+                
+                // 3. 根据手势识别结果实现手势状态决策
+                if (currentTime - lastGestureSwitchTime > gestureParams.fiveFingerOpen.cooldownTime) {
+                    // 重置手势状态
+                    handData.isFiveFingerOpen = false;
+                    handData.isFist = false;
+                    handData.isPinch = false;
+                    handData.is8Gesture = false;
+                    
+                    // 手势优先级：先检测握拳，再检测捏合，最后检测张开手掌
+                    if (isFist) {
+                        console.log('检测到握拳手势');
+                        handData.isFist = true;
+                        
+                        if (gestureState.isFocused) {
+                            if (gestureState.isRotationLocked) {
+                                // focus模式下且旋转锁定：握拳继续固定
+                                console.log('握拳：固定镜头角度');
+                            } else {
+                                // focus模式下且非旋转锁定：颠倒效果，握拳为拉远镜头
+                            console.log('握拳：拉远镜头');
+                            camTargetDist += 3.75; // 快速拉远
+                            // 移动端focus模式最小相机高度为10，其他情况为5
+                            const minDist = isMobile ? 10 : 5;
+                            const maxDist = 15; // focus模式下相机距离最大值为15
+                            camTargetDist = THREE.MathUtils.clamp(camTargetDist, minDist, maxDist);
+                            }
+                        } else {
+                            // 非focus模式下：握拳为拉远镜头
+                            console.log('握拳：远离镜头');
+                            camTargetDist += 3.75; // 快速拉远
+                            const minDist = 15;
+                            // 移动端非focus模式下最高相机高度为90，其他情况使用全局配置
+                            const maxDist = isMobile ? 90 : CONFIG.maxCamDist;
+                            camTargetDist = THREE.MathUtils.clamp(camTargetDist, minDist, maxDist);
+                        }
+                        lastGestureSwitchTime = currentTime;
+                    } else if (isPinch) {
+                        console.log('检测到捏合手势');
+                        handData.isPinch = true;
+                        
+                        if (gestureState.isFocused) {
+                            if (gestureState.isRotationLocked) {
+                                // focus模式下且旋转锁定：捏合保持
+                                console.log('捏合：固定镜头角度');
+                            } else {
+                                // focus模式下且非旋转锁定：颠倒效果，捏合为固定镜头角度
+                                // 限定条件：移动端相机高度<=10，其他情况<=5才可以触发
+                                const minTriggerDist = isMobile ? 10 : 5;
+                                if (camTargetDist <= minTriggerDist) {
+                                    console.log('捏合：固定镜头角度');
+                                    // 保存当前旋转角度
+                                    gestureState.savedRotationY = sphereGroup.rotation.y;
+                                    gestureState.savedRotationX = sphereGroup.rotation.x;
+                                    gestureState.savedRotationZ = sphereGroup.rotation.z;
+                                    gestureState.isRotationLocked = true;
+                                    
+                                    // 固定镜头后将相框放在屏幕正中央，并放大到1.3倍
+                                    if (gestureState.focusFrame) {
+                                        // 将相框从sphereGroup中移除
+                                        sphereGroup.remove(gestureState.focusFrame);
+                                        // 直接添加到场景中，位置在相机前方正中央
+                                        gestureState.focusFrame.position.set(0, 0, 0);
+                                        // 放大到1.3倍
+                                        gestureState.focusFrame.scale.set(1.3, 1.3, 1.3);
+                                        scene.add(gestureState.focusFrame);
+                                        console.log('相框已固定到屏幕正中央并放大');
+                                    }
+                                } else {
+                                    // 相机距离不是5，不触发固定
+                                    console.log('捏合：相机距离不是5，无法固定镜头');
+                                }
+                            }
+                        } else {
+                            // 非focus模式下：捏合为进入focus模式
+                            console.log('捏合：进入focus模式');
+                            enterFocusMode();
+                        }
+                        lastGestureSwitchTime = currentTime;
+                    } else if (isOpenHand) {
+                        console.log('检测到张开手掌手势');
+                        handData.isFiveFingerOpen = true;
+                        
+                        if (gestureState.isFocused && gestureState.isRotationLocked) {
+                            // focus模式下且旋转锁定：张开手掌恢复之前的focus模式
+                            console.log('张开手掌：恢复之前的focus模式');
+                            gestureState.isRotationLocked = false;
+                            
+                            // 相框放回星球组，并恢复原始大小
+                            if (gestureState.focusFrame && gestureState.focusFrame.parent === scene) {
+                                scene.remove(gestureState.focusFrame);
+                                gestureState.focusFrame.position.set(0, 0, 0);
+                                // 恢复原始大小
+                                gestureState.focusFrame.scale.set(1, 1, 1);
+                                sphereGroup.add(gestureState.focusFrame);
+                            }
+                        } else {
+                            // 其他情况：张开手掌为拉近摄像头
+                            console.log('张开手掌：拉近摄像头');
+                            camTargetDist -= 3.75; // 快速拉近
+                            // 移动端focus模式最小相机高度为10，其他情况为5
+                            const minDist = gestureState.isFocused ? (isMobile ? 10 : 5) : 15;
+                            // 移动端非focus模式下最高相机高度为90，其他情况使用全局配置
+                            const maxDist = gestureState.isFocused ? 15 : (isMobile ? 90 : CONFIG.maxCamDist); // focus模式下相机距离最大值为15
+                            camTargetDist = THREE.MathUtils.clamp(camTargetDist, minDist, maxDist);
+                        }
+                        lastGestureSwitchTime = currentTime;
+                    } else {
+                        console.log('未检测到特定手势');
+                    }
+                }
+                
+                // 更新手势置信度
+                handData.gestureConfidence = fiveFingerConfidence;
+                
+                // 连续手势检测：两次"合、张"触发focus模式
+                const currentGesture = handData.isFist ? "close" : (handData.isFiveFingerOpen ? "open" : "neutral");
+                
+                // 检查手势是否变化且不为中性
+                if (currentGesture !== "neutral") {
+                    // 清除超时的手势序列
+                    if (currentTime - gestureState.lastGestureChangeTime > gestureState.gestureTimeout) {
+                        gestureState.gestureSequence = [];
+                    }
+                    
+                    // 添加新手势到序列（如果与前一个不同）
+                    if (gestureState.gestureSequence.length === 0 || gestureState.gestureSequence[gestureState.gestureSequence.length - 1] !== currentGesture) {
+                        gestureState.gestureSequence.push(currentGesture);
+                        gestureState.lastGestureChangeTime = currentTime;
+                        
+                        // 限制序列长度为4（最多记录两个完整的"合、张"）
+                        if (gestureState.gestureSequence.length > 4) {
+                            gestureState.gestureSequence.shift();
+                        }
+                        
+                        // 检查序列是否为两次"合、张"：["close", "open", "close", "open"]
+                        const sequenceStr = gestureState.gestureSequence.join(",");
+                        if (sequenceStr === "close,open,close,open") {
+                            console.log('检测到两次"合、张"手势，触发Focus模式');
+                            enterFocusMode();
+                            // 清空序列，避免重复触发
+                            gestureState.gestureSequence = [];
+                        }
+                    }
+                }
+            // 更新上一帧状态
+            handData.prevIsFiveFingerOpen = handData.isFiveFingerOpen;
+            handData.prevIsFist = handData.isFist;
+            handData.prevIsPinch = handData.isPinch;
+            
+        } else { 
+            handData.detected = false;
+            handData.isFiveFingerOpen = false;
+            handData.isFist = false;
+            handData.isPinch = false;
+            
+            // 更新上一帧状态
+            handData.prevIsFiveFingerOpen = false;
+            handData.prevIsFist = false;
+            handData.prevIsPinch = false;
+        }
+        canvasCtx.restore();
+    });
+
+        const cameraInput = new Camera(videoElement, { 
+            onFrame: async () => await hands.send({image: videoElement}), 
+            width: 640, 
+            height: 480 
+        });
+        
+        cameraInput.start().then(() => {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 1000);
+            document.getElementById('cam-status').innerText = "INTERFACE ACTIVE";
+        });
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getElapsedTime();
+        particles.material.uniforms.uTime.value = delta;
+
+        camera.position.z += (camTargetDist - camera.position.z) * 0.1;
+        camera.lookAt(0, 0, 0);
+
+        if (handData.detected) {
+            // 旋转灵敏度控制：
+            // - 相机距离为10时，灵敏度为0.4
+            // - 相机距离大于25时，灵敏度为0.6
+            // - 其他情况，灵敏度为1.0
+            let sensitivity;
+            // 考虑focus模式下的最小相机距离为5
+            if (camTargetDist <= 5) {
+                sensitivity = 0.4;
+            } else if (camTargetDist > 25) {
+                sensitivity = 0.6;
+            } else {
+                sensitivity = 1.0;
+            }
+            
+            // 检查是否锁定旋转
+            if (gestureState.isRotationLocked) {
+                // 固定镜头角度，使用保存的旋转值
+                sphereGroup.rotation.y = gestureState.savedRotationY;
+                sphereGroup.rotation.x = gestureState.savedRotationX;
+                sphereGroup.rotation.z = gestureState.savedRotationZ;
+            } else {
+                // 基础旋转控制：手部水平移动映射为球体旋转角度
+                // 正常状态：手部从最左端到最右端移动时，球体能旋转两圈
+                // 捏合状态：手部从最左端到最右端移动时，球体能旋转半圈
+                const baseRotationFactor = Math.PI * 4 * sensitivity; // 水平移动映射系数，根据灵敏度调整
+                const targetRotationY = handData.x * baseRotationFactor;
+                sphereGroup.rotation.y = targetRotationY;
+                
+                // 垂直旋转灵敏度根据状态调整
+                const verticalFactor = 10.0 * sensitivity;
+                sphereGroup.rotation.x += (handData.y * verticalFactor - sphereGroup.rotation.x) * (1.0 * sensitivity);
+                
+                // 角度旋转灵敏度根据状态调整
+                sphereGroup.rotation.z += (handData.angle - sphereGroup.rotation.z) * (1.0 * sensitivity);
+            }
+        }
+        
+        // Focus模式下的粒子四散效果
+        if (gestureState.isFocused) {
+            const elapsed = Date.now() - gestureState.focusStartTime;
+            const scatterProgress = Math.min(elapsed / 1000, 1.0); // 1秒内完成四散
+            const dummy = new THREE.Object3D();
+            
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                // 获取原始位置
+                const originalPos = gestureState.originalParticlePositions[i];
+                
+                // 计算粒子到中心的方向
+                const direction = originalPos.clone().normalize();
+                
+                // 计算四散距离：根据原始距离和进度
+                const scatterDistance = originalPos.length() * scatterProgress * 2.0;
+                
+                // 计算新位置
+                const newPos = originalPos.clone().add(direction.multiplyScalar(scatterDistance));
+                
+                // 更新粒子位置
+                dummy.position.copy(newPos);
+                dummy.updateMatrix();
+                particles.setMatrixAt(i, dummy.matrix);
+            }
+            particles.instanceMatrix.needsUpdate = true;
+            
+            // Focus状态下的退出逻辑：识别到8字手势则取消focus状态
+        if (handData.detected) {
+            // 使用is8Gesture作为退出条件
+            if (handData.is8Gesture) {
+                console.log('检测到8字手势，退出Focus模式');
+                exitFocusMode();
+            }
+        }
+            
+            // 检测拇指和食指打开手势（散开效果）
+            const isThumbIndexOpen = handData.thumbIndexDistance > 0.2; // 阈值，根据实际情况调整
+            const isThumbIndexClosing = handData.thumbIndexDistance < handData.prevThumbIndexDistance - 0.02;
+            const isThumbIndexOpening = handData.thumbIndexDistance > handData.prevThumbIndexDistance + 0.02;
+            
+            // 存储原始位置和缩放（仅在首次检测时）
+            if (sphereGroup.children.length > 0 && !hasStoredOriginalData) {
+                sphereGroup.children.forEach((child, index) => {
+                    if (child instanceof THREE.Group && child.children.length > 1) {
+                        originalFrameData.push({
+                            index: index,
+                            position: child.position.clone(),
+                            scale: child.scale.clone()
+                        });
+                    }
+                });
+                // 存储粒子系统的原始位置
+                if (particles) {
+                    originalParticlePosition.copy(particles.position);
+                }
+                hasStoredOriginalData = true;
+            }
+            
+            // 散开效果：拇指食指打开
+            if (isThumbIndexOpen && !gestureState.isExpanded) {
+                console.log('检测到拇指食指打开，执行散开效果');
+                gestureState.isExpanded = true;
+                gestureState.targetExpansionScale = 1.4; // 降低放大比例，防止照片从屏幕消失
+            }
+            
+            // 还原效果：拇指食指捏合
+            if (isThumbIndexClosing && gestureState.isExpanded && handData.thumbIndexDistance < 0.15) {
+                console.log('检测到拇指食指捏合，执行还原效果');
+                gestureState.isExpanded = false;
+                gestureState.targetExpansionScale = 1.0;
+                // 重置移动偏移量，确保完全还原
+                gestureState.moveOffset.set(0, 0, 0);
+            }
+            
+            // 平滑过渡到目标缩放
+            gestureState.expansionScale += (gestureState.targetExpansionScale - gestureState.expansionScale) * 0.1;
+            
+            // 应用散开和放大效果
+            if (gestureState.isExpanded || gestureState.expansionScale !== 1.0) {
+                // 处理相框
+                sphereGroup.children.forEach((child, index) => {
+                    if (child instanceof THREE.Group && child.children.length > 1) {
+                        // 获取原始数据
+                        const originalData = originalFrameData.find(data => data.index === index);
+                        if (originalData) {
+                            // 计算新位置：原始位置 * 缩放比例 + 移动偏移量
+                            const scaledPosition = originalData.position.clone().multiplyScalar(gestureState.expansionScale);
+                            child.position.copy(scaledPosition).add(gestureState.moveOffset);
+                            // 应用放大效果
+                            child.scale.setScalar(gestureState.expansionScale);
+                        }
+                    }
+                });
+                
+                // 处理粒子系统
+                if (particles) {
+                    particles.scale.setScalar(gestureState.expansionScale);
+                    // 计算粒子系统的新位置：原始位置 + 移动偏移量
+                    particles.position.copy(originalParticlePosition).add(gestureState.moveOffset);
+                }
+            }
+            
+            // 手部上下拨动效果
+            if (gestureState.isExpanded) {
+                // 计算手部Y轴移动增量
+                const handMoveDelta = handData.y - gestureState.prevHandY;
+                
+                // 更新移动偏移量，而不是直接修改元素位置
+                gestureState.moveOffset.y += handMoveDelta * 2.0;
+            } else {
+                // 在非散开状态下，重置移动偏移量
+                gestureState.moveOffset.set(0, 0, 0);
+            }
+            
+            // 更新上一帧数据
+            gestureState.prevHandY = handData.y;
+            
+        } else {
+            sphereGroup.rotation.y += 0.0006;
+        }
+
+        const pulseStrength = 0.15 + Math.sin(delta * 1.8) * 0.1;
+        neuralNet.material.opacity = pulseStrength;
+        
+        const netScale = 1.0 + Math.sin(delta * 2.5) * 0.005;
+        neuralNet.scale.set(netScale, netScale, netScale);
+
+        rings.children.forEach((orbitGroup, i) => {
+            orbitGroup.rotation.y += orbitGroup.userData.speed * orbitGroup.userData.direction;
+            orbitGroup.position.y = Math.sin(delta * 0.4 + i) * 0.1 * scaleFactor; 
+            orbitGroup.children[0].material.opacity = 0.7 + Math.sin(delta * 3.0 + i) * 0.3;
+        });
+        
+        // 实时调整透明度和颜色滤镜，确保相框运动到正对屏幕一侧时无透明度和滤镜
+        sphereGroup.children.forEach((child) => {
+            if (child instanceof THREE.Group && child.children.length > 1) {
+                // 获取相框的世界矩阵
+                const worldMatrix = new THREE.Matrix4();
+                child.updateMatrixWorld();
+                worldMatrix.copy(child.matrixWorld);
+                
+                // 提取相框正面法线（Z轴正方向）
+                const frontNormal = new THREE.Vector3(0, 0, 1);
+                frontNormal.applyMatrix4(worldMatrix).normalize();
+                
+                // 计算相机到相框位置的向量（从相机指向相框）
+                const cameraToFrame = new THREE.Vector3();
+                cameraToFrame.subVectors(child.position, camera.position).normalize();
+                
+                // 计算法线与相机到相框向量的点积
+                // 当点积 < 0 时，相框正面朝向相机（法线方向与相机视线相反）
+                // 当点积 > 0 时，相框背面朝向相机（法线方向与相机视线相同）
+                const dotProduct = frontNormal.dot(cameraToFrame);
+                
+                let opacity;
+                let hasColorFilter = false;
+                
+                if (dotProduct < 0) {
+                    // 正面朝向相机（正对屏幕一侧）
+                    opacity = 1.0; // 完全不透明
+                } else {
+                    // 背面朝向相机（背面一侧）
+                    const distanceToCamera = camera.position.distanceTo(child.position);
+                    const distanceFactor = Math.max(0, 1 - (distanceToCamera - CONFIG.sphereBaseRadius) / 10);
+                    opacity = 0.4 + distanceFactor * 0.4; // 0.4到0.8，带透明度
+                    hasColorFilter = true; // 背面添加颜色滤镜
+                }
+                
+                // 应用透明度和颜色滤镜到所有子物体（外框和照片）
+                child.children.forEach((frameChild) => {
+                    if (frameChild.material) {
+                        frameChild.material.opacity = opacity;
+                        
+                        // 非focus模式下添加/取消星球颜色滤镜
+                        if (!gestureState.isFocused) {
+                            if (Array.isArray(frameChild.material)) {
+                                // 多材质数组处理（相框外框）
+                                frameChild.material.forEach(material => {
+                                    if (hasColorFilter) {
+                                        // 背面：添加星球颜色滤镜，使用星球主题色（如蓝色调）
+                                        material.color.setHex(0x48cae4); // 星球主题色
+                                        // THREE.Color.convertSRGBToLinear(material.color); // 移除不必要的转换
+                                    } else {
+                                        // 正面：取消滤镜，恢复原始颜色
+                                        // 多材质数组的原始颜色：右面(0xcccccc)、左面(0x999999)、上面(0xaaaaaa)、下面(0x888888)、前面(0xffffff)、后面(0xffffff)
+                                        const originalColors = [0xcccccc, 0x999999, 0xaaaaaa, 0x888888, 0xffffff, 0xffffff];
+                                        const materialIndex = frameChild.material.indexOf(material);
+                                        if (materialIndex >= 0) {
+                                            material.color.setHex(originalColors[materialIndex]);
+                                            // THREE.Color.convertSRGBToLinear(material.color); // 移除不必要的转换
+                                        }
+                                    }
+                                });
+                            } else {
+                                    // 单材质处理（照片）
+                                    if (hasColorFilter) {
+                                        // 背面：添加星球颜色滤镜
+                                        frameChild.material.color.setHex(0x48cae4); // 星球主题色
+                                        // THREE.Color.convertSRGBToLinear(frameChild.material.color); // 移除不必要的转换
+                                    } else {
+                                        // 正面：取消滤镜，恢复原始颜色（通过重置材质）
+                                        // 对于照片，我们需要重新应用原始纹理的颜色，这里我们简单地将颜色设置为白色，让纹理自然显示
+                                        frameChild.material.color.setHex(0xffffff);
+                                        // THREE.Color.convertSRGBToLinear(frameChild.material.color); // 移除不必要的转换
+                                    }
+                                }
+                        }
+                    }
+                });
+            }
+        });
+        
+        // 同样实时调整粒子系统的透明度
+        if (particles) {
+            // 获取粒子系统的世界位置
+            const particleWorldPosition = new THREE.Vector3();
+            particles.getWorldPosition(particleWorldPosition);
+            
+            // 实时计算粒子到相机的方向向量
+            const particleToCamera = new THREE.Vector3();
+            particleToCamera.subVectors(camera.position, particleWorldPosition).normalize();
+            
+            // 实时计算粒子法向量（朝向球心）
+            const particleNormal = new THREE.Vector3();
+            particleNormal.copy(particleWorldPosition).normalize();
+            
+            // 实时计算点积判断正反面
+            const dotProduct = particleToCamera.dot(particleNormal);
+            
+            // 完全简化的粒子透明度计算
+            let particlesOpacity;
+            
+            if (dotProduct > 0) {
+                // 正面粒子（正对屏幕一侧）
+                // 不论怎么旋转，只要在正面，就完全不透明
+                particlesOpacity = 1.0; // 完全不透明，没有任何透明度
+            } else {
+                // 背面粒子（背面一侧），始终带透明度
+                const distanceToCamera = camera.position.distanceTo(particleWorldPosition);
+                const distanceFactor = Math.max(0, 1 - (distanceToCamera - CONFIG.sphereBaseRadius) / 10);
+                particlesOpacity = Math.min(0.7, 0.3 + distanceFactor * 0.4);
+            }
+            
+            // 粒子系统使用自定义ShaderMaterial，只调整透明度，不修改颜色
+            particles.material.opacity = particlesOpacity;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    // 执行初始化
+    initThree();
+    initHandTracking();
+    animate();
+};
+</script>
+</body>
+</html>
